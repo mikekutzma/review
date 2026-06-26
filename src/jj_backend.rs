@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
+use std::process::Command;
 use std::sync::Arc;
 
 use anyhow::{Context, Result, bail};
@@ -33,6 +34,7 @@ pub async fn load_review_input(
     root: &Path,
     paths: &[String],
 ) -> Result<ReviewInput> {
+    snapshot_working_copy(root);
     let settings = UserSettings::from_config(StackedConfig::with_defaults())?;
     let workspace = Workspace::load(
         &settings,
@@ -341,4 +343,13 @@ fn path_allowed(path: &str, paths: &[String]) -> bool {
         || paths
             .iter()
             .any(|filter| path == filter || path.starts_with(&format!("{filter}/")))
+}
+
+fn snapshot_working_copy(root: &Path) {
+    let _ = Command::new("jj")
+        .args(["util", "snapshot"])
+        .current_dir(root)
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status();
 }
